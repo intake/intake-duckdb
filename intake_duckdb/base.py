@@ -1,8 +1,9 @@
 from intake.source import base
+
 from . import __version__
 
 
-class SQLSource(base.DataSource):
+class DuckDBSource(base.DataSource):
     """
     One-shot SQL to dataframe reader (no partitioning)
 
@@ -17,41 +18,46 @@ class SQLSource(base.DataSource):
     sql_kwargs: dict
         Further arguments to pass to pandas.read_sql
     """
-    name = 'sql'
-    version = __version__
-    container = 'dataframe'
-    partition_access = True
 
-    def __init__(self, uri, sql_expr, sql_kwargs={}, metadata={}):
+    name = "duckdb"
+    version = __version__
+    container = "dataframe"
+    partition_access = False
+
+    def __init__(self, urlpath, sql_expr, duckdb_kwargs={}, metadata={}):
         self._init_args = {
-            'uri': uri,
-            'sql_expr': sql_expr,
-            'sql_kwargs': sql_kwargs,
-            'metadata': metadata,
+            "urlpath": urlpath,
+            "sql_expr": sql_expr,
+            "duckdb_kwargs": duckdb_kwargs,
+            "metadata": metadata,
         }
 
-        self._uri = uri
+        self._urlpath = urlpath
         self._sql_expr = sql_expr
-        self._sql_kwargs = sql_kwargs
+        self._duckdb_kwargs = duckdb_kwargs
         self._dataframe = None
 
-        super(SQLSource, self).__init__(metadata=metadata)
+        super(DuckDBSource, self).__init__(metadata=metadata)
+
+        import duckdb
+
+        self._con = duckdb.connect(self._urlpath)
 
     def _load(self):
-        import pandas as pd
-        loader = pd.read_sql_table if self._sql_kwargs.get("schema") else pd.read_sql
-        self._dataframe = loader(self._sql_expr, self._uri, **self._sql_kwargs)
+        self._dataframe = self._con.sql(self._sql_expr).df()
 
     def _get_schema(self):
         if self._dataframe is None:
             # TODO: could do read_sql with chunksize to get likely schema from
             # first few records, rather than loading the whole thing
             self._load()
-        return base.Schema(datashape=None,
-                           dtype={k: str(v) for k,v in self._dataframe.dtypes.items()},
-                           shape=self._dataframe.shape,
-                           npartitions=1,
-                           extra_metadata={})
+        return base.Schema(
+            datashape=None,
+            dtype={k: str(v) for k, v in self._dataframe.dtypes.items()},
+            shape=self._dataframe.shape,
+            npartitions=1,
+            extra_metadata={},
+        )
 
     def _get_partition(self, _):
         if self._dataframe is None:
@@ -69,7 +75,7 @@ class SQLSource(base.DataSource):
         """
         client, supports_schemas = make_ibis_client(self._uri)
         schema = self._sql_kwargs.get("schema")
-        schema_kwargs = { "schema": schema } if supports_schemas else {}
+        schema_kwargs = {"schema": schema} if supports_schemas else {}
 
         if self._sql_expr not in client.list_tables(**schema_kwargs):
             # SQLAlchemy-based ibis clients don't currently have
@@ -80,6 +86,7 @@ class SQLSource(base.DataSource):
 
     def _close(self):
         self._dataframe = None
+        self._con.close()
 
 
 class SQLSourceAutoPartition(base.DataSource):
@@ -105,18 +112,19 @@ class SQLSourceAutoPartition(base.DataSource):
     sql_kwargs: dict
         Further arguments to pass to dask.dataframe.read_sql
     """
-    name = 'sql_auto'
+
+    name = "sql_auto"
     version = __version__
-    container = 'dataframe'
+    container = "dataframe"
     partition_access = True
 
     def __init__(self, uri, table, index, sql_kwargs={}, metadata={}):
         self._init_args = {
-            'uri': uri,
-            'sql_expr': table,
-            'index': index,
-            'sql_kwargs': sql_kwargs,
-            'metadata': metadata,
+            "uri": uri,
+            "sql_expr": table,
+            "index": index,
+            "sql_kwargs": sql_kwargs,
+            "metadata": metadata,
         }
 
         self._uri = uri
@@ -129,17 +137,21 @@ class SQLSourceAutoPartition(base.DataSource):
 
     def _load(self):
         import dask.dataframe as dd
-        self._dataframe = dd.read_sql_table(self._sql_expr, self._uri,
-                                            self._index, **self._sql_kwargs)
+
+        self._dataframe = dd.read_sql_table(
+            self._sql_expr, self._uri, self._index, **self._sql_kwargs
+        )
 
     def _get_schema(self):
         if self._dataframe is None:
             self._load()
-        return base.Schema(datashape=None,
-                           dtype={k: str(v) for k,v in self._dataframe.dtypes.items()},
-                           shape=(None, len(self._dataframe.columns)),
-                           npartitions=self._dataframe.npartitions,
-                           extra_metadata={})
+        return base.Schema(
+            datashape=None,
+            dtype={k: str(v) for k, v in self._dataframe.dtypes.items()},
+            shape=(None, len(self._dataframe.columns)),
+            npartitions=self._dataframe.npartitions,
+            extra_metadata={},
+        )
 
     def _get_partition(self, i):
         if self._dataframe is None:
@@ -158,7 +170,7 @@ class SQLSourceAutoPartition(base.DataSource):
         """
         client, supports_schemas = make_ibis_client(self._uri)
         schema = self._sql_kwargs.get("schema")
-        schema_kwargs = { "schema": schema } if supports_schemas else {}
+        schema_kwargs = {"schema": schema} if supports_schemas else {}
 
         if self._sql_expr not in client.list_tables(**schema_kwargs):
             # SQLAlchemy-based ibis clients don't currently have
@@ -166,7 +178,6 @@ class SQLSourceAutoPartition(base.DataSource):
             raise ValueError("Only full tables can be used in to_ibis")
         else:
             return client.table(self._sql_expr, **schema_kwargs)
-
 
     def read(self):
         self._get_schema()
@@ -208,47 +219,61 @@ class SQLSourceManualPartition(base.DataSource):
     sql_kwargs: dict
         Further arguments to pass to pd.read_sql_query
     """
-    name = 'sql_manual'
+
+    name = "sql_manual"
     version = __version__
-    container = 'dataframe'
+    container = "dataframe"
     partition_access = True
 
-    def __init__(self, uri, sql_expr, where_values, where_template=None,
-                 sql_kwargs={}, metadata={}):
+    def __init__(
+        self,
+        uri,
+        sql_expr,
+        where_values,
+        where_template=None,
+        sql_kwargs={},
+        metadata={},
+    ):
         self._init_args = {
-            'uri': uri,
-            'sql_expr': sql_expr,
-            'where': where_values,
-            'where_tmp': where_template,
-            'sql_kwargs': sql_kwargs,
-            'metadata': metadata,
+            "uri": uri,
+            "sql_expr": sql_expr,
+            "where": where_values,
+            "where_tmp": where_template,
+            "sql_kwargs": sql_kwargs,
+            "metadata": metadata,
         }
 
         self._uri = uri
         self._sql_expr = sql_expr  # TODO: may check for table and expand to
-                                   # "SELECT * FROM {table}"
+        # "SELECT * FROM {table}"
         self._sql_kwargs = sql_kwargs
         self._where = where_values
         self._where_tmp = where_template
         self._dataframe = None
-        self._meta = self._sql_kwargs.pop('meta', None)
+        self._meta = self._sql_kwargs.pop("meta", None)
 
         super(SQLSourceManualPartition, self).__init__(metadata=metadata)
 
     def _load(self):
-        self._dataframe = read_sql_query(self._uri, self._sql_expr,
-                                         self._where, where_tmp=self._where_tmp,
-                                         meta=self._meta,
-                                         kwargs=self._sql_kwargs)
+        self._dataframe = read_sql_query(
+            self._uri,
+            self._sql_expr,
+            self._where,
+            where_tmp=self._where_tmp,
+            meta=self._meta,
+            kwargs=self._sql_kwargs,
+        )
 
     def _get_schema(self):
         if self._dataframe is None:
             self._load()
-        return base.Schema(datashape=None,
-                           dtype={k: str(v) for k,v in self._dataframe.dtypes.items()},
-                           shape=(None, len(self._dataframe.columns)),
-                           npartitions=self._dataframe.npartitions,
-                           extra_metadata={})
+        return base.Schema(
+            datashape=None,
+            dtype={k: str(v) for k, v in self._dataframe.dtypes.items()},
+            shape=(None, len(self._dataframe.columns)),
+            npartitions=self._dataframe.npartitions,
+            extra_metadata={},
+        )
 
     def _get_partition(self, i):
         if self._dataframe is None:
@@ -269,7 +294,8 @@ class SQLSourceManualPartition(base.DataSource):
 
 def load_part(sql, engine, where, kwargs, meta=None):
     import pandas as pd
-    sql = sql + ' ' + where
+
+    sql = sql + " " + where
     df = pd.read_sql(sql, engine, **kwargs)
     if meta is not None:
         if df.empty:
@@ -307,6 +333,7 @@ def read_sql_query(uri, sql, where, where_tmp=None, meta=None, kwargs=None):
     """
     import dask
     import dask.dataframe as dd
+
     if where_tmp is not None:
         where = [where_tmp.format(*values) for values in where]
     if kwargs is None:
@@ -335,17 +362,21 @@ def make_ibis_client(uri):
     A tuple of client, supports_schemas
     """
     import sqlalchemy
+
     url = sqlalchemy.engine.url.make_url(uri)
     dialect = url.get_dialect()
     name = dialect.name
     if name == "postgresql":
         import ibis
+
         return ibis.postgres.connect(url=uri), True
     elif name == "mysql":
         import ibis
+
         return ibis.mysql.connect(url=uri), True
     elif name == "sqlite":
         import ibis
+
         return ibis.sqlite.connect(path=url.database), False
     else:
         raise ValueError(f"Unable to create an ibis connection for {uri}")
