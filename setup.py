@@ -20,10 +20,7 @@ setup(
     package_data={"": ["*.csv", "*.yml", "*.html"]},
     entry_points={
         "intake.drivers": [
-            "sql = intake_sql.intake_sql:SQLSource",
-            "sql_cat = intake_sql.sql_cat:SQLCatalog",
-            "sql_auto = intake_sql.intake_sql:SQLSourceAutoPartition",
-            "sql_manual = intake_sql.intake_sql:SQLSourceManualPartition",
+            "duckdb = intake_duckdb:DuckDBSource",
         ]
     },
     include_package_data=True,

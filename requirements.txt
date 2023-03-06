@@ -1,3 +1,2 @@
 intake
-pandas<1.4
-sqlalchemy<1.4.0
+pandas
