@@ -4,9 +4,19 @@ from .. import DuckDBSource
 from .conftest import TEMP_TABLE
 
 
-def test_duckdb_source(connection, duckdb_source):
+def test_db_connection(connection):
     tables = connection.execute("SHOW TABLES").fetchall()
     assert TEMP_TABLE in [table[0] for table in tables]
+
+
+def test_duckdb_source_full_expression(db, dataframe):
+    source = DuckDBSource(db, f"SELECT * from {TEMP_TABLE}")
+    assert source.read().equals(dataframe)
+
+
+def test_duckdb_source_table_name(db, dataframe):
+    source = DuckDBSource(db, table=TEMP_TABLE)
+    assert source.read().equals(dataframe)
 
 
 def test_open_duckdb(db):

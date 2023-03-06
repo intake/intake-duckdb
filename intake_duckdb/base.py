@@ -25,17 +25,34 @@ class DuckDBSource(base.DataSource):
     container = "dataframe"
     partition_access = True
 
-    def __init__(self, urlpath, sql_expr, chunks=None, duckdb_kwargs={}, metadata={}):
+    def __init__(
+        self,
+        urlpath,
+        sql_expr=None,
+        table=None,
+        chunks=None,
+        duckdb_kwargs={},
+        metadata={},
+    ):
         self._init_args = {
             "urlpath": urlpath,
             "sql_expr": sql_expr,
+            "table": table,
             "chunks": chunks,
             "duckdb_kwargs": duckdb_kwargs,
             "metadata": metadata,
         }
 
+        if sql_expr is None and table is None:
+            err = "One of 'sql_expr' or 'table' is required"
+            raise ValueError(err)
+
+        if sql_expr is not None and table is not None:
+            err = "Only one of 'sql_expr' or 'table' is allowed"
+            raise ValueError(err)
+
         self._urlpath = urlpath
-        self._sql_expr = sql_expr
+        self._sql_expr = sql_expr or f"SELECT * FROM {table}"
         self._duckdb_kwargs = duckdb_kwargs
         self._chunks = chunks or 1
         self._schema = None
