@@ -1,3 +1,4 @@
+import numpy as np
 from intake.source import base
 
 from . import __version__
@@ -22,12 +23,13 @@ class DuckDBSource(base.DataSource):
     name = "duckdb"
     version = __version__
     container = "dataframe"
-    partition_access = False
+    partition_access = True
 
-    def __init__(self, urlpath, sql_expr, duckdb_kwargs={}, metadata={}):
+    def __init__(self, urlpath, sql_expr, chunks=None, duckdb_kwargs={}, metadata={}):
         self._init_args = {
             "urlpath": urlpath,
             "sql_expr": sql_expr,
+            "chunks": chunks,
             "duckdb_kwargs": duckdb_kwargs,
             "metadata": metadata,
         }
@@ -35,6 +37,7 @@ class DuckDBSource(base.DataSource):
         self._urlpath = urlpath
         self._sql_expr = sql_expr
         self._duckdb_kwargs = duckdb_kwargs
+        self._chunks = chunks or 1
         self._schema = None
         self._dataframe = None
 
@@ -44,8 +47,10 @@ class DuckDBSource(base.DataSource):
 
         self._con = duckdb.connect(self._urlpath)
         self._duckdb = self._con.sql(self._sql_expr)
+        self._bins = np.linspace(0, self._duckdb.shape[0], self._chunks + 1, dtype=int)
 
     def _load(self):
+        self._load_metadata()
         self._dataframe = self._duckdb.df()
 
     def _get_schema(self):
@@ -58,20 +63,32 @@ class DuckDBSource(base.DataSource):
                 datashape=None,
                 dtype=dict(zip(columns, dtypes)),
                 shape=shape,
-                npartitions=1,
+                npartitions=self._chunks,
                 extra_metadata={},
             )
 
         return self._schema
 
-    def _get_partition(self, _):
-        if self._dataframe is None:
-            self._load_metadata()
-            self._load()
-        return self._dataframe
+    def _get_partition(self, i):
+        self._load_metadata()
+
+        start = self._bins[i]
+        stop = self._bins[i + 1]
+
+        if self._dataframe is not None:
+            return self._dataframe[start:stop]
+
+        chunked_sql_expr = f"""
+            {self._sql_expr}
+            WHERE rowid >= {start}
+            AND rowid < {stop}
+        """
+
+        return self._con.sql(chunked_sql_expr).df()
 
     def read(self):
-        return self._get_partition(None)
+        self._load()
+        return self._dataframe
 
     def to_ibis(self):
         """

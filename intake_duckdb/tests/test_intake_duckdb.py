@@ -1,3 +1,5 @@
+import pandas as pd
+
 from .. import DuckDBSource
 from .conftest import TEMP_TABLE
 
@@ -29,3 +31,36 @@ def test_discover(duckdb_source):
 
     # discover() should not load entire dataframe
     assert duckdb_source._dataframe is None
+
+
+def test_read_chunked_from_db(duckdb_source_chunked, dataframe):
+    duckdb_source_chunked.discover()
+    assert duckdb_source_chunked.npartitions == 10
+    assert duckdb_source_chunked._dataframe is None
+
+    df_chunks = []
+    for chunk in duckdb_source_chunked.read_chunked():
+        df_chunks.append(chunk)
+
+    assert len(df_chunks) == 10
+    df = pd.concat(df_chunks, ignore_index=True)
+
+    assert df.equals(dataframe)
+
+    # Reading chunks directly from db shouldn't load dataframe
+    assert duckdb_source_chunked._dataframe is None
+
+
+def test_read_chunked_from_df(duckdb_source_chunked, dataframe):
+    duckdb_source_chunked._load()
+    assert duckdb_source_chunked.npartitions == 10
+    assert duckdb_source_chunked._dataframe is not None
+
+    df_chunks = []
+    for chunk in duckdb_source_chunked.read_chunked():
+        df_chunks.append(chunk)
+
+    assert len(df_chunks) == 10
+    df = pd.concat(df_chunks, ignore_index=True)
+
+    assert df.equals(dataframe)

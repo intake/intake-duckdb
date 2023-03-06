@@ -9,17 +9,6 @@ TEMP_TABLE = "temp"
 
 
 @pytest.fixture(scope="module")
-def connection(db):
-    return duckdb.connect(db)
-
-
-@pytest.fixture(scope="function")
-def duckdb_source(db, connection, dataframe):
-    sql_expr = f"SELECT * from {TEMP_TABLE}"
-    return DuckDBSource(db, sql_expr)
-
-
-@pytest.fixture(scope="module")
 def dataframe():
     df = pd.DataFrame(
         {
@@ -28,7 +17,6 @@ def dataframe():
             "c": np.random.choice(["a", "b", "c", "d"], size=100).tolist(),
         }
     )
-    df.index.name = "p"
 
     return df
 
@@ -40,3 +28,20 @@ def db(tmp_path_factory, dataframe):
     con.sql(f"CREATE TABLE {TEMP_TABLE} AS SELECT * FROM dataframe")
     con.close()
     return dbfile
+
+
+@pytest.fixture(scope="module")
+def connection(db):
+    return duckdb.connect(db)
+
+
+@pytest.fixture(scope="function")
+def duckdb_source(db, connection, dataframe):
+    sql_expr = f"SELECT * from {TEMP_TABLE}"
+    return DuckDBSource(db, sql_expr)
+
+
+@pytest.fixture(scope="function")
+def duckdb_source_chunked(db, connection, dataframe):
+    sql_expr = f"SELECT * from {TEMP_TABLE}"
+    return DuckDBSource(db, sql_expr, chunks=10)
