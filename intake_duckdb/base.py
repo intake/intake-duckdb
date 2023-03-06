@@ -40,14 +40,10 @@ class DuckDBSource(base.DataSource):
         self._chunks = chunks or 1
         self._schema = None
         self._dataframe = None
+        self._con = None
+        self._bins = None
 
         super(DuckDBSource, self).__init__(metadata=metadata)
-
-        import duckdb
-
-        self._con = duckdb.connect(self._urlpath)
-        self._duckdb = self._con.sql(self._sql_expr)
-        self._bins = np.linspace(0, self._duckdb.shape[0], self._chunks + 1, dtype=int)
 
     def _load(self):
         self._load_metadata()
@@ -55,6 +51,14 @@ class DuckDBSource(base.DataSource):
 
     def _get_schema(self):
         if self._schema is None:
+            import duckdb
+
+            self._con = duckdb.connect(self._urlpath)
+            self._duckdb = self._con.sql(self._sql_expr)
+            self._bins = np.linspace(
+                0, self._duckdb.shape[0], self._chunks + 1, dtype=int
+            )
+
             shape = self._duckdb.shape
             columns = self._duckdb.columns
             dtypes = self._duckdb.types
