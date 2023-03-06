@@ -17,3 +17,15 @@ def test_open_duckdb(db):
 def test_read(duckdb_source, dataframe):
     result_df = duckdb_source.read()
     assert result_df.equals(dataframe)
+
+
+def test_discover(duckdb_source):
+    assert duckdb_source._dataframe is None
+
+    schema = duckdb_source.discover()
+
+    assert schema is not None
+    assert duckdb_source._schema is not None
+
+    # discover() should not load entire dataframe
+    assert duckdb_source._dataframe is None

@@ -13,9 +13,8 @@ def connection(db):
     return duckdb.connect(db)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def duckdb_source(db, connection, dataframe):
-    connection.sql(f"CREATE TABLE {TEMP_TABLE} AS SELECT * FROM dataframe")
     sql_expr = f"SELECT * from {TEMP_TABLE}"
     return DuckDBSource(db, sql_expr)
 
@@ -35,5 +34,9 @@ def dataframe():
 
 
 @pytest.fixture(scope="module")
-def db(tmp_path_factory):
-    return str(tmp_path_factory.mktemp("db") / "test.duckdb")
+def db(tmp_path_factory, dataframe):
+    dbfile = str(tmp_path_factory.mktemp("db") / "test.duckdb")
+    con = duckdb.connect(dbfile)
+    con.sql(f"CREATE TABLE {TEMP_TABLE} AS SELECT * FROM dataframe")
+    con.close()
+    return dbfile

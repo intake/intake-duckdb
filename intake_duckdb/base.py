@@ -35,6 +35,7 @@ class DuckDBSource(base.DataSource):
         self._urlpath = urlpath
         self._sql_expr = sql_expr
         self._duckdb_kwargs = duckdb_kwargs
+        self._schema = None
         self._dataframe = None
 
         super(DuckDBSource, self).__init__(metadata=metadata)
@@ -42,26 +43,31 @@ class DuckDBSource(base.DataSource):
         import duckdb
 
         self._con = duckdb.connect(self._urlpath)
+        self._duckdb = self._con.sql(self._sql_expr)
 
     def _load(self):
-        self._dataframe = self._con.sql(self._sql_expr).df()
+        self._dataframe = self._duckdb.df()
 
     def _get_schema(self):
-        if self._dataframe is None:
-            # TODO: could do read_sql with chunksize to get likely schema from
-            # first few records, rather than loading the whole thing
-            self._load()
-        return base.Schema(
-            datashape=None,
-            dtype={k: str(v) for k, v in self._dataframe.dtypes.items()},
-            shape=self._dataframe.shape,
-            npartitions=1,
-            extra_metadata={},
-        )
+        if self._schema is None:
+            shape = self._duckdb.shape
+            columns = self._duckdb.columns
+            dtypes = self._duckdb.types
+
+            self._schema = base.Schema(
+                datashape=None,
+                dtype=dict(zip(columns, dtypes)),
+                shape=shape,
+                npartitions=1,
+                extra_metadata={},
+            )
+
+        return self._schema
 
     def _get_partition(self, _):
         if self._dataframe is None:
             self._load_metadata()
+            self._load()
         return self._dataframe
 
     def read(self):
