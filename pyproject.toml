@@ -1,3 +1,49 @@
+[build-system]
+requires = ["setuptools", "setuptools-git-versioning"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intake-duckdb"
+dynamic = ["version"]
+description = "DuckDB plugin for Intake"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Blake Rosenthal"},
+]
+maintainers = [
+    {name = "Blake Rosenthal", email = "brosenthal@anaconda.com"},
+]
+keywords = [
+    "intake",
+    "duckdb",
+    "duck",
+]
+dependencies = [
+    "intake",
+    "pandas",
+    "duckdb",
+]
+
+[project.entry-points."intake.drivers"]
+duckdb = "intake_duckdb:DuckDBSource"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[tool.setuptools]
+packages = [
+    "intake_duckdb",
+]
+
+[tool.setuptools-git-versioning]
+enabled = true
+dev_template = "{tag}+{ccount}.g{sha}"
+dirty_template = "{tag}+{ccount}.g{sha}.dirty"
+
 [tool.black]
 line-length = 88
 

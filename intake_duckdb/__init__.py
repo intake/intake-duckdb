@@ -1,7 +1,7 @@
-from ._version import get_versions
+from importlib.metadata import version
 
-__version__ = get_versions()["version"]
-del get_versions
+__version__ = version("intake-duckdb")
+del version
 
 # import intake
 from .base import DuckDBSource

@@ -1,2 +1,0 @@
-intake
-pandas
