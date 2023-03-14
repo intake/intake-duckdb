@@ -4,10 +4,10 @@ sources:
         uri: "{{URI}}"
     parameters: # User defined parameters
       URI:
-        description: sqlite
+        description: duckdb
         type: str
-        default: "env(TEST_SQLITE_URI)"
-    description: "points to sqlite database"
-    driver: sql_cat
+        default: "env(TEST_DUCKDB_URI)"
+    description: "points to duckdb database"
+    driver: duckdb_cat
     direct_access: forbid
     metadata: {}

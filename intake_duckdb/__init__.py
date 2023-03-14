@@ -5,6 +5,4 @@ del version
 
 # import intake
 from .base import DuckDBSource
-
-# from .intake_duckdb import (SQLSource, SQLSourceAutoPartition, SQLSourceManualPartition)
-# from .duckdb_cat import DuckDBCatalog
+from .catalog import DuckDBCatalog

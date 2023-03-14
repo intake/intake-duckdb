@@ -27,7 +27,8 @@ class DuckDBSource(base.DataSource):
 
     def __init__(
         self,
-        urlpath,
+        uri=None,
+        connection=None,
         sql_expr=None,
         table=None,
         chunks=None,
@@ -35,7 +36,7 @@ class DuckDBSource(base.DataSource):
         metadata={},
     ):
         self._init_args = {
-            "urlpath": urlpath,
+            "uri": uri,
             "sql_expr": sql_expr,
             "table": table,
             "chunks": chunks,
@@ -51,7 +52,12 @@ class DuckDBSource(base.DataSource):
             err = "Only one of 'sql_expr' or 'table' is allowed"
             raise ValueError(err)
 
-        self._urlpath = urlpath
+        if uri is None and connection is None:
+            err = "One of 'uri' or 'connection' is required"
+            raise ValueError(err)
+
+        self._uri = uri
+        self._con = connection
         self._sql_expr = sql_expr or f"SELECT * FROM {table}"
         self._duckdb_kwargs = duckdb_kwargs
         self._chunks = chunks or 1
@@ -70,7 +76,7 @@ class DuckDBSource(base.DataSource):
         if self._schema is None:
             import duckdb
 
-            self._con = duckdb.connect(self._urlpath)
+            self._con = self._con or duckdb.connect(self._uri)
             self._duckdb = self._con.sql(self._sql_expr)
             self._bins = np.linspace(
                 0, self._duckdb.shape[0], self._chunks + 1, dtype=int

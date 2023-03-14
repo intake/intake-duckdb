@@ -1,9 +1,11 @@
 from collections.abc import Mapping
 
+import duckdb
 from intake.catalog.base import Catalog
 from intake.catalog.local import LocalCatalogEntry
 
 from . import __version__
+from .base import DuckDBSource
 
 
 class DuckDBCatalog(Catalog):
@@ -18,97 +20,66 @@ class DuckDBCatalog(Catalog):
     name = "duckdb_cat"
     version = __version__
 
-    def __init__(self, uri, views=False, duckdb_kwargs=None, **kwargs):
-        self.duckdb_kwargs = duckdb_kwargs or {}
-        self.uri = uri
-        self.views = views
+    def __init__(self, uri, connection=None, views=False, duckdb_kwargs=None, **kwargs):
+        self._duckdb_kwargs = duckdb_kwargs or {}
+        self._uri = uri
+
+        # TODO: does duckdb have views?
+        # self._views = views
+        self._con = connection
         super(DuckDBCatalog, self).__init__(**kwargs)
 
     def _load(self):
-        import sqlalchemy
-
-        engine = sqlalchemy.create_engine(self.uri)
-        meta = sqlalchemy.MetaData(bind=engine)
-        meta.reflect(views=self.views, schema=self.sql_kwargs.get("schema"))
-        self._entries = SQLEntries(meta, self.uri, self.sql_kwargs)
+        self._con = self._con or duckdb.connect(self._uri, read_only=True)
+        self._entries = DuckDBEntries(self._uri, self._con, self._duckdb_kwargs)
 
 
-class SQLEntries(Mapping):
-    def __init__(self, meta, uri, sql_kwargs):
-        self.meta = meta
-        self.uri = uri
-        self.sql_kwargs = sql_kwargs
-        self.tables = None
-        self.cache = {}
+class DuckDBEntries(Mapping):
+    def __init__(self, uri, connection, duckdb_kwargs):
+        self._uri = uri
+        self._con = connection
+        self._duckdb_kwargs = duckdb_kwargs
+        self._tables = None
+        self._cache = {}
 
-    def _get_tables(self):
-        if self.tables is None:
-            self.tables = list(self.meta.tables)
+    def tables(self):
+        if self._tables is None:
+            self._tables = [
+                table[0] for table in self._con.execute("SHOW TABLES").fetchall()
+            ]
 
-    def _make_entry(self, name):
-        if name in self.cache:
-            return
-        from intake_sql import SQLSource, SQLSourceAutoPartition
+        return self._tables
 
-        description = "SQL table %s from %s" % (name, self.uri)
-        table = self.meta.tables[name]
-        for c in table.columns:
-            # We use table.name instead of the metadata key here as it
-            # does not include the schema name, which is handled
-            # by the `sql_kwargs`.
-            if c.primary_key:
-                description = "SQL table %s from %s" % (name, self.uri)
-                args = {
-                    "uri": self.uri,
-                    "table": table.name,
-                    "index": c.name,
-                    "sql_kwargs": self.sql_kwargs,
-                }
-                e = LocalCatalogEntry(
-                    table.name,
-                    description,
-                    "sql_auto",
-                    True,
-                    args,
-                    {},
-                    [],
-                    {},
-                    "",
-                    getenv=False,
-                    getshell=False,
-                )
-                e._plugin = [SQLSourceAutoPartition]
-                self.cache[name] = e
-                break
-        else:
-            args = {
-                "uri": self.uri,
-                "sql_expr": table.name,
-                "sql_kwargs": self.sql_kwargs,
-            }
-            e = LocalCatalogEntry(
-                name,
-                description,
-                "sql",
-                True,
-                args,
-                {},
-                [],
-                {},
-                "",
-                getenv=False,
-                getshell=False,
-            )
-            e._plugin = [SQLSource]
-            self.cache[name] = e
+    def entry(self, name):
+        if name in self._cache:
+            return self._cache[name]
+
+        description = f"DuckDB table {name} from {self._uri}"
+        # table = self._con.table(name)
+
+        args = {
+            "uri": self._uri,
+            "table": name,
+            "duckdb_kwargs": self._duckdb_kwargs,
+        }
+
+        e = LocalCatalogEntry(
+            name=name,
+            description=description,
+            driver="duckdb",
+            args=args,
+        )
+
+        e._plugin = [DuckDBSource]
+        self._cache[name] = e
+
+        return e
 
     def keys(self):
-        self._get_tables()
-        return self.tables
+        return self.tables()
 
     def __getitem__(self, item):
-        self._make_entry(item)
-        return self.cache[item]
+        return self.entry(item)
 
     def __len__(self):
         return len(self.keys())

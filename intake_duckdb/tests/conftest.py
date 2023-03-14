@@ -21,7 +21,7 @@ def dataframe():
     return df
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def db(tmp_path_factory, dataframe):
     dbfile = str(tmp_path_factory.mktemp("db") / "test.duckdb")
     con = duckdb.connect(dbfile)
@@ -30,9 +30,11 @@ def db(tmp_path_factory, dataframe):
     return dbfile
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def connection(db):
-    return duckdb.connect(db)
+    con = duckdb.connect(db)
+    yield con
+    con.close()
 
 
 @pytest.fixture(scope="function")

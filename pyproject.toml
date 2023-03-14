@@ -28,10 +28,12 @@ dependencies = [
 
 [project.entry-points."intake.drivers"]
 duckdb = "intake_duckdb:DuckDBSource"
+duckdb_cat = "intake_duckdb:DuckDBCatalog"
 
 [project.optional-dependencies]
 test = [
     "pytest",
+    "intake[server]",
 ]
 
 [tool.setuptools]
