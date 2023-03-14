@@ -28,8 +28,8 @@ class DuckDBSource(base.DataSource):
     def __init__(
         self,
         uri=None,
-        connection=None,
         sql_expr=None,
+        connection=None,
         table=None,
         chunks=None,
         duckdb_kwargs={},

@@ -43,9 +43,9 @@ def test_yaml_cat(db, dataframe):
 
 @pytest.fixture()
 def remote_db(db):
-    # pytest.importorskip("tornado")
-    # pytest.importorskip("msgpack")
-    # pytest.importorskip("requests")
+    pytest.importorskip("tornado")
+    pytest.importorskip("msgpack")
+    pytest.importorskip("requests")
     port = random.randint(1025, 64000)
     os.environ["TEST_DUCKDB_URI"] = db  # used in catalog default
 
@@ -68,8 +68,8 @@ def remote_db(db):
     proc.wait()
 
 
-def test_with_server(remote_db, connection, dataframe):
-    cat = intake.open_catalog(remote_db, connection)
+def test_with_server(remote_db, dataframe):
+    cat = intake.open_catalog(remote_db)
     s = cat.tables[TEMP_TABLE]
     data = s.read()
     assert data.equals(dataframe)

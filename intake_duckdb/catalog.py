@@ -20,33 +20,31 @@ class DuckDBCatalog(Catalog):
     name = "duckdb_cat"
     version = __version__
 
-    def __init__(self, uri, connection=None, views=False, duckdb_kwargs=None, **kwargs):
+    def __init__(self, uri, views=False, duckdb_kwargs=None, **kwargs):
         self._duckdb_kwargs = duckdb_kwargs or {}
         self._uri = uri
 
         # TODO: does duckdb have views?
         # self._views = views
-        self._con = connection
         super(DuckDBCatalog, self).__init__(**kwargs)
 
     def _load(self):
-        self._con = self._con or duckdb.connect(self._uri, read_only=True)
-        self._entries = DuckDBEntries(self._uri, self._con, self._duckdb_kwargs)
+        self._entries = DuckDBEntries(self._uri, self._duckdb_kwargs)
 
 
 class DuckDBEntries(Mapping):
-    def __init__(self, uri, connection, duckdb_kwargs):
+    def __init__(self, uri, duckdb_kwargs):
         self._uri = uri
-        self._con = connection
         self._duckdb_kwargs = duckdb_kwargs
         self._tables = None
         self._cache = {}
 
     def tables(self):
         if self._tables is None:
-            self._tables = [
-                table[0] for table in self._con.execute("SHOW TABLES").fetchall()
-            ]
+            with duckdb.connect(self._uri, read_only=True) as con:
+                self._tables = [
+                    table[0] for table in con.execute("SHOW TABLES").fetchall()
+                ]
 
         return self._tables
 
@@ -55,7 +53,6 @@ class DuckDBEntries(Mapping):
             return self._cache[name]
 
         description = f"DuckDB table {name} from {self._uri}"
-        # table = self._con.table(name)
 
         args = {
             "uri": self._uri,
