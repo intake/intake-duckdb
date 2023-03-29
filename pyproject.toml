@@ -34,6 +34,7 @@ duckdb_cat = "intake_duckdb:DuckDBCatalog"
 test = [
     "pytest",
     "intake[server]",
+    "python-snappy",
 ]
 
 [tool.setuptools]
