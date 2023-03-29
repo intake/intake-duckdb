@@ -6,18 +6,25 @@ from . import __version__
 
 class DuckDBSource(base.DataSource):
     """
-    One-shot SQL to dataframe reader (no partitioning)
+    DuckDB table to dataframe reader. Can take either a table name or a SQL expression.
+    Partitionable.
 
     Caches entire dataframe in memory.
 
     Parameters
     ----------
     uri: str or None
-        Full connection string in sqlalchemy syntax
-    sql_expr: str
+        Path to local duckdb file
+    sql_expr: str or None
         Query expression to pass to the DB backend
-    sql_kwargs: dict
-        Further arguments to pass to pandas.read_sql
+    connection: duckdb.DuckDBPyConnection or None
+        Existing connection to DB backend
+    table: str or None
+        Table name
+    chunks: int or None
+        Number of partitions, default is 1
+    metadata: dict
+        Additional metadata to pass to parent class
     """
 
     name = "duckdb"
@@ -32,7 +39,6 @@ class DuckDBSource(base.DataSource):
         connection=None,
         table=None,
         chunks=None,
-        duckdb_kwargs={},
         metadata={},
     ):
         self._init_args = {
@@ -40,7 +46,6 @@ class DuckDBSource(base.DataSource):
             "sql_expr": sql_expr,
             "table": table,
             "chunks": chunks,
-            "duckdb_kwargs": duckdb_kwargs,
             "metadata": metadata,
         }
 
@@ -59,7 +64,6 @@ class DuckDBSource(base.DataSource):
         self._uri = uri
         self._con = connection
         self._sql_expr = sql_expr or f"SELECT * FROM {table}"
-        self._duckdb_kwargs = duckdb_kwargs
         self._chunks = chunks or 1
         self._schema = None
         self._dataframe = None
