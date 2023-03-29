@@ -27,6 +27,15 @@ def test_cat(db, connection, dataframe):
     assert df.equals(dataframe)
 
 
+def test_open_cat(db, dataframe):
+    cat = intake.open_duckdb_cat(db)
+    assert isinstance(cat, DuckDBCatalog)
+    assert TEMP_TABLE in cat
+
+    df = cat[TEMP_TABLE].read()
+    assert df.equals(dataframe)
+
+
 def test_yaml_cat(db, dataframe):
     os.environ["TEST_DUCKDB_URI"] = db  # used in catalog default
     cat = intake.open_catalog(os.path.join(here, "cat.yaml"))

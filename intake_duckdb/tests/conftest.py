@@ -33,7 +33,6 @@ def db(tmp_path_factory, dataframe):
 @pytest.fixture(scope="function")
 def connection(db):
     con = duckdb.connect(db)
-    breakpoint()
     yield con
     con.close()
 

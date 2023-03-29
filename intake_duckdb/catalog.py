@@ -16,8 +16,7 @@ class DuckDBCatalog(Catalog):
     name = "duckdb_cat"
     version = __version__
 
-    def __init__(self, uri, views=False, duckdb_kwargs=None, **kwargs):
-        self._duckdb_kwargs = duckdb_kwargs or {}
+    def __init__(self, uri, views=False, **kwargs):
         self._uri = uri
 
         # TODO: does duckdb have views?
@@ -25,13 +24,12 @@ class DuckDBCatalog(Catalog):
         super(DuckDBCatalog, self).__init__(**kwargs)
 
     def _load(self):
-        self._entries = DuckDBEntries(self._uri, self._duckdb_kwargs)
+        self._entries = DuckDBEntries(self._uri)
 
 
 class DuckDBEntries(Mapping):
-    def __init__(self, uri, duckdb_kwargs):
+    def __init__(self, uri):
         self._uri = uri
-        self._duckdb_kwargs = duckdb_kwargs
         self._tables = None
         self._cache = {}
 
@@ -53,7 +51,6 @@ class DuckDBEntries(Mapping):
         args = {
             "uri": self._uri,
             "table": name,
-            "duckdb_kwargs": self._duckdb_kwargs,
         }
 
         e = LocalCatalogEntry(

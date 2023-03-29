@@ -62,7 +62,7 @@ def test_read_chunked_from_db(duckdb_source_chunked, dataframe):
 
 
 def test_read_chunked_from_df(duckdb_source_chunked, dataframe):
-    duckdb_source_chunked._load()
+    duckdb_source_chunked._load()  # load entire dataframe
     assert duckdb_source_chunked.npartitions == 10
     assert duckdb_source_chunked._dataframe is not None
 
