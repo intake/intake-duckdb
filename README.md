@@ -5,7 +5,7 @@ DuckDB Plugin for Intake
 ## Installation
 
 ```shell
-pip install git+https://github.com/blakerosenthal/intake-duckdb.git
+pip install intake-duckdb
 ```
 
 ## Usage
