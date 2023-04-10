@@ -4,10 +4,15 @@ DuckDB Plugin for Intake
 
 ## Installation
 
+From PyPI
 ```shell
 pip install intake-duckdb
 ```
 
+Or conda-forge
+```shell
+conda install -c conda-forge intake-duckdb
+```
 ## Usage
 
 Load an entire table into a dataframe
