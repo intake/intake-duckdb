@@ -7,7 +7,48 @@ sources:
         description: duckdb
         type: str
         default: "env(TEST_DUCKDB_URI)"
-    description: "points to duckdb database"
+    description: Catalog of duckdb database tables
     driver: duckdb_cat
     direct_access: forbid
     metadata: {}
+
+  test_csv_1:
+    args:
+      urlpath: "{{ CATALOG_DIR }}/test.csv"
+    description: Small test CSV
+    driver: csv
+    metadata: {}
+
+  test_csv_2:
+    args:
+      urlpath: "{{ CATALOG_DIR }}/test.csv"
+    description: Duplicate test CSV
+    driver: csv
+    metadata: {}
+
+  transform_source_1:
+    args:
+      targets:
+        - test_csv_1
+      sql_expr: SELECT * FROM test_csv_1 LIMIT 10
+    description: Source referencing other sources in catalog
+    driver: duckdb_transform
+
+  transform_source_2:
+    args:
+      targets:
+        - test_csv_1
+        - test_csv_2
+      sql_expr: |
+        SELECT *
+        FROM (
+          SELECT a, b
+          FROM test_csv_1
+        ) AS t1
+        JOIN (
+          SELECT b, c
+          FROM test_csv_2
+        ) AS t2
+        ON (t1.b = t2.b)
+    description: Source referencing multiple other sources in catalog
+    driver: duckdb_transform

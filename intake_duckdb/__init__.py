@@ -6,3 +6,4 @@ del version
 # import intake
 from .base import DuckDBSource
 from .catalog import DuckDBCatalog
+from .transform import DuckDBTransform

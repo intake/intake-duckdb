@@ -76,9 +76,12 @@ class DuckDBSource(base.DataSource):
         self._load_metadata()
         self._dataframe = self._duckdb.df()
 
-    def _get_schema(self):
+    def _get_schema(self, context=None):
         if self._schema is None:
             import duckdb
+
+            if context is not None:
+                globals().update(context)
 
             self._con = self._con or duckdb.connect(self._uri)
             self._duckdb = self._con.sql(self._sql_expr)

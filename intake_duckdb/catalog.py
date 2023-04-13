@@ -35,7 +35,7 @@ class DuckDBEntries(Mapping):
 
     def tables(self):
         if self._tables is None:
-            with duckdb.connect(self._uri, read_only=True) as con:
+            with duckdb.connect(self._uri) as con:
                 self._tables = [
                     table[0] for table in con.execute("SHOW TABLES").fetchall()
                 ]

@@ -29,6 +29,7 @@ dependencies = [
 [project.entry-points."intake.drivers"]
 duckdb = "intake_duckdb:DuckDBSource"
 duckdb_cat = "intake_duckdb:DuckDBCatalog"
+duckdb_transform = "intake_duckdb:DuckDBTransform"
 
 [project.optional-dependencies]
 test = [
