@@ -1,10 +1,11 @@
 import numpy as np
-from intake.source import base
+from intake.source import DataSource
+from intake.source.base import Schema
 
 from . import __version__
 
 
-class DuckDBSource(base.DataSource):
+class DuckDBSource(DataSource):
     """
     DuckDB table to dataframe reader. Can take either a table name or a SQL expression.
     Partitionable.
@@ -93,7 +94,7 @@ class DuckDBSource(base.DataSource):
             columns = self._duckdb.columns
             dtypes = self._duckdb.types
 
-            self._schema = base.Schema(
+            self._schema = Schema(
                 datashape=None,
                 dtype=dict(zip(columns, dtypes)),
                 shape=shape,
