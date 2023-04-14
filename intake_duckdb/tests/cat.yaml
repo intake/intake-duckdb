@@ -14,14 +14,24 @@ sources:
 
   test_csv_1:
     args:
-      urlpath: "{{ CATALOG_DIR }}/test.csv"
+      urlpath: "{{CSV}}"
+    parameters:
+      CSV:
+        description: Test CSV file
+        type: str
+        default: "env(TEST_CSV_FILE)"
     description: Small test CSV
     driver: csv
     metadata: {}
 
   test_csv_2:
     args:
-      urlpath: "{{ CATALOG_DIR }}/test.csv"
+      urlpath: "{{CSV}}"
+    parameters:
+      CSV:
+        description: Test CSV file
+        type: str
+        default: "env(TEST_CSV_FILE)"
     description: Duplicate test CSV
     driver: csv
     metadata: {}

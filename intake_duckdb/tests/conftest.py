@@ -1,3 +1,5 @@
+import os
+
 import duckdb
 import numpy as np
 import pandas as pd
@@ -6,6 +8,7 @@ import pytest
 from .. import DuckDBSource
 
 TEMP_TABLE = "temp"
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.fixture(scope="module")
@@ -27,6 +30,7 @@ def db(tmp_path_factory, dataframe):
     con = duckdb.connect(dbfile)
     con.sql(f"CREATE TABLE {TEMP_TABLE} AS SELECT * FROM dataframe")
     con.close()
+    os.environ["TEST_DUCKDB_URI"] = dbfile  # used in catalog default
     return dbfile
 
 

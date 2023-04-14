@@ -2,9 +2,18 @@ import os
 
 import intake
 import pandas as pd
+import pytest
 
 from .. import DuckDBSource, DuckDBTransform
-from .conftest import TEMP_TABLE
+from .conftest import HERE, TEMP_TABLE
+
+
+@pytest.fixture(scope="module")
+def test_csv(tmp_path_factory, dataframe):
+    csvfile = str(tmp_path_factory.mktemp("csv") / "test.csv")
+    dataframe.to_csv(csvfile, index=False)
+    os.environ["TEST_CSV_FILE"] = csvfile  # used in catalog default
+    return csvfile
 
 
 def test_duckdb_transform(db, dataframe):
@@ -35,10 +44,9 @@ def test_duckdb_transform_join(db, dataframe):
     assert "table2" not in globals()
 
 
-def test_transform_other_catalog_source(db, dataframe):
+def test_transform_other_catalog_source(db, dataframe, test_csv):
     os.environ["TEST_DUCKDB_URI"] = db
-    here = os.path.abspath(os.path.dirname(__file__))
-    cat = intake.open_catalog(os.path.join(here, "cat.yaml"))
+    cat = intake.open_catalog(os.path.join(HERE, "cat.yaml"))
 
     assert "test_csv_1" in cat
     assert "transform_source_1" in cat
@@ -47,7 +55,7 @@ def test_transform_other_catalog_source(db, dataframe):
     assert len(transform_df) == 10
 
 
-def test_join_multiple_source_types(db, dataframe):
+def test_join_multiple_source_types(db, dataframe, test_csv):
     os.environ["TEST_DUCKDB_URI"] = db
     here = os.path.abspath(os.path.dirname(__file__))
     cat = intake.open_catalog(os.path.join(here, "cat.yaml"))

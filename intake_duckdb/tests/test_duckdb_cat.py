@@ -9,9 +9,7 @@ import requests
 
 from intake_duckdb.catalog import DuckDBCatalog
 
-from .conftest import TEMP_TABLE
-
-here = os.path.abspath(os.path.dirname(__file__))
+from .conftest import HERE, TEMP_TABLE
 
 
 def test_cat(db, connection, dataframe):
@@ -37,8 +35,7 @@ def test_open_cat(db, dataframe):
 
 
 def test_yaml_cat(db, dataframe):
-    os.environ["TEST_DUCKDB_URI"] = db  # used in catalog default
-    cat = intake.open_catalog(os.path.join(here, "cat.yaml"))
+    cat = intake.open_catalog(os.path.join(HERE, "cat.yaml"))
 
     assert "tables" in cat
 
@@ -56,9 +53,8 @@ def remote_db(db):
     pytest.importorskip("msgpack")
     pytest.importorskip("requests")
     port = random.randint(1025, 64000)
-    os.environ["TEST_DUCKDB_URI"] = db  # used in catalog default
 
-    fn = os.path.join(here, "cat.yaml")
+    fn = os.path.join(HERE, "cat.yaml")
     cmd = ["intake-server", fn, "-p", f"{port}"]
     proc = subprocess.Popen(cmd, env=os.environ)
     timeout = 5
