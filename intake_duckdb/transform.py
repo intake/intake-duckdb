@@ -25,21 +25,19 @@ class DuckDBTransform(DuckDBSource):
         }
 
         super().__init__(**self._base_args)
-        self.sources = self.get_sources(targets)
+        self.targets = targets
+        self.sources = {}
 
-    def get_sources(self, targets):
-        for targ in targets:
+    def get_sources(self):
+        for targ in self.targets:
             if isinstance(targ, DataSource):
-                yield targ
+                self.sources[targ.name] = targ
             else:
-                yield self.cat[targ]
+                self.sources[targ] = self.cat[targ]
 
     def _get_schema(self):
-        context = {source.name: source.read() for source in self.sources}
+        if not self.sources:
+            self.get_sources()
+
+        context = {name: source.read() for name, source in self.sources.items()}
         return super()._get_schema(context)
-
-
-def all_targets(targets, cat, kwargs, cat_kwargs):
-    from intake.source.derived import get_source
-
-    return [get_source(targ, cat, kwargs.get(targ, {}), cat_kwargs) for targ in targets]

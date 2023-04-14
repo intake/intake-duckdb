@@ -45,7 +45,6 @@ def test_duckdb_transform_join(db, dataframe):
 
 
 def test_transform_other_catalog_source(db, dataframe, test_csv):
-    os.environ["TEST_DUCKDB_URI"] = db
     cat = intake.open_catalog(os.path.join(HERE, "cat.yaml"))
 
     assert "test_csv_1" in cat
@@ -56,7 +55,6 @@ def test_transform_other_catalog_source(db, dataframe, test_csv):
 
 
 def test_join_multiple_source_types(db, dataframe, test_csv):
-    os.environ["TEST_DUCKDB_URI"] = db
     here = os.path.abspath(os.path.dirname(__file__))
     cat = intake.open_catalog(os.path.join(here, "cat.yaml"))
 
@@ -65,4 +63,16 @@ def test_join_multiple_source_types(db, dataframe, test_csv):
     assert "transform_source_2" in cat
 
     transform_df = cat.transform_source_2.read()
+    assert isinstance(transform_df, pd.DataFrame)
+
+
+def test_query_from_nested_catalog(db):
+    cat = intake.open_catalog(os.path.join(HERE, "cat.yaml"))
+    assert "tables" in cat
+
+    tables = cat.tables
+    assert TEMP_TABLE in tables
+
+    assert "transform_source_3" in cat
+    transform_df = cat.transform_source_3.read()
     assert isinstance(transform_df, pd.DataFrame)

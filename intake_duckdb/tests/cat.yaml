@@ -62,3 +62,11 @@ sources:
         ON (t1.b = t2.b)
     description: Source referencing multiple other sources in catalog
     driver: duckdb_transform
+
+  transform_source_3:
+    args:
+      targets:
+        - tables.temp
+      sql_expr: SELECT * FROM tables.temp LIMIT 10
+    description: Source referencing sources in nested catalogs
+    driver: duckdb_transform
