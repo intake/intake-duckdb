@@ -1,5 +1,5 @@
-- [ ] Read arbitrary SQL from duckdb file into dataframe
-- [ ] Read entire table from duckdb file into dataframe
+- [x] Read arbitrary SQL from duckdb file into dataframe
+- [x] Read entire table from duckdb file into dataframe
 	- Should probably just be a subclass of arbitrary SQL class
  - [ ] Should handle duckdb files and exports
  - [ ] Also handle SQLite files in addition to duckdb?

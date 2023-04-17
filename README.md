@@ -46,3 +46,26 @@ list(cat)
 df = cat["tablename"].read()
 df_chunks = [chunk for chunk in cat["tablename"](chunks=10).read_chunked()]
 ```
+
+Run DuckDB queries on other Intake sources (that produce pandas DataFrames) within the same catalog
+```yaml
+# cat.yaml
+sources:
+  csv_source:
+    args:
+      urlpath: https://data.csv
+    description: Remote CSV source
+    driver: csv
+
+  duck_source:
+    args:
+      targets:
+        - csv_source
+      sql_expr: SELECT col FROM csv_source LIMIT 10
+    description: Source referencing other sources in catalog
+    driver: duckdb_transform
+```
+```python
+cat  = intake.open_catalog("cat.yaml")
+duck_source = cat.duck_source.read()
+```
