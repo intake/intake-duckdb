@@ -4,7 +4,7 @@ Intake-DuckDB uses ReadTheDocs and Sphinx to generate documentation. To build do
 an environment from the included `requirements.txt` file.
 
 ```bash
-pip install -r requirements.txt
+pip install .[docs]
 ```
 
 To make HTML documentation:
