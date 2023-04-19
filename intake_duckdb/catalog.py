@@ -10,7 +10,12 @@ from .base import DuckDBSource
 
 class DuckDBCatalog(Catalog):
     """
-    Makes data sources out of known tables in the given DuckDB instance.
+    Makes data source catalog out of known tables in the given DuckDB instance.
+
+    Parameters
+    ----------
+    uri: str or None
+        Path to local duckdb file
     """
 
     name = "duckdb_cat"

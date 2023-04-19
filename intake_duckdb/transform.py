@@ -5,6 +5,24 @@ from .base import DuckDBSource
 
 
 class DuckDBTransform(DuckDBSource):
+    """
+    Run a DuckDB query on any Intake source for which `.read()` produces a pandas
+    DataFrame. Can specify multiple targets within the same catalog. Reads entire
+    source of each target into memory.
+
+    Parameters
+    ----------
+    sql_expr: str
+        Query expression to pass to the DB backend
+    targets: list[intake.DataSource] or list[str]
+        List of Intake data sources or named sources within catalog
+    chunks: int or None
+        Number of partitions, default is 1
+    metadata: dict
+        Additional metadata to pass to parent class
+
+    """
+
     name = "duckdb_transform"
     version = __version__
     container = "dataframe"
