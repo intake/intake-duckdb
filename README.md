@@ -1,5 +1,8 @@
 # Intake-DuckDB
 
+[![Build Status](https://github.com/intake/intake-duckdb//actions/workflows/main.yaml/badge.svg)](https://github.com/intake/intake-duckdb/actions)
+[![Documentation Status](https://readthedocs.org/projects/intake-duckdb/badge/?version=latest)](http://intake-duckdb.readthedocs.io/en/latest/?badge=latest)
+
 DuckDB Plugin for Intake
 
 ## Installation
