@@ -125,6 +125,10 @@ class DuckDBSource(DataSource):
         self._load()
         return self._dataframe
 
+    def to_duck(self):
+        self._get_schema()
+        return self._duckdb
+
     def _close(self):
         self._dataframe = None
         self._con.close()

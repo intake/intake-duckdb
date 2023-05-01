@@ -57,5 +57,15 @@ class DuckDBTransform(DuckDBSource):
         if not self.sources:
             self.get_sources()
 
-        context = {name: source.read() for name, source in self.sources.items()}
+        context = {}
+        for name, source in self.sources.items():
+            source._get_schema()
+
+            # duckdb source
+            if hasattr(source, "to_duck") and self._con is None:
+                context[name] = source.to_duck()
+                self._con = source._con
+            else:
+                context[name] = source.read()
+
         return super()._get_schema(context)

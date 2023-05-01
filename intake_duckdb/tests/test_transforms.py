@@ -19,6 +19,7 @@ def test_csv(tmp_path_factory, dataframe):
 def test_duckdb_transform(db, dataframe):
     source = DuckDBSource(db, f"SELECT * from {TEMP_TABLE}")
     assert source.read().equals(dataframe)
+    source._dataframe = None
 
     source.name = "tablename"
     transform = DuckDBTransform([source], "SELECT * from tablename LIMIT 5")
@@ -26,6 +27,9 @@ def test_duckdb_transform(db, dataframe):
 
     assert transform_df.equals(dataframe.head(5))
     assert "tablename" not in globals()
+
+    # transform should not load df into memory for duck sources
+    assert source._dataframe is None
 
 
 def test_duckdb_transform_join(db, dataframe):
